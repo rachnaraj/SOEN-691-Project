@@ -3,7 +3,7 @@ from requests.auth import HTTPBasicAuth
 import pandas as pd
 from urllib.parse import urlparse
 
-df = pd.read_csv('filtered_data.csv')
+df = pd.read_csv('dataset.csv')
 df_cleaned = df.dropna(subset=['ML TD Type'])
 filtered_df = df_cleaned[(df_cleaned['Comment-Removing Revision'] != "STILL_EXISTS") & (df_cleaned['ML TD Type'] != "nan")]
 
@@ -29,7 +29,7 @@ for index, row in filtered_df.iterrows():
     for file in commit_data.get("files", []):
         if file["filename"] == filename:
             changesInFile = file["changes"]
-            filtered_df.at[index, 'Changes LOC'] = changesInFile;
+            filtered_df.loc[index, 'Changes LOC'] = changesInFile;
             break
     # Get size of the project
     repos_url = f"https://api.github.com/repos/{repo}"
@@ -37,6 +37,6 @@ for index, row in filtered_df.iterrows():
     repos_data = response.json()
     if response.status_code == 200:
         size = repos_data["size"]
-        filtered_df.at[index, 'Project size in KB'] = size;
+        filtered_df.loc[index, 'Project size in KB'] = size;
 
-filtered_df.to_csv('filtered_data_with_loc.csv', index=False)
+filtered_df.to_csv('filtered_data_with_loc2.csv', index=False)
