@@ -1,20 +1,33 @@
 import ast
 import os
 import subprocess
+import pandas as pd
 import matplotlib.pyplot as plt
 
 
-
 def clone_github_repo(repo_url, local_dir):
-    if not os.path.exists(local_dir):
-        os.makedirs(local_dir)
-    subprocess.run(["git", "clone", repo_url, local_dir], check=True)
+    try:
+        if not os.path.exists(local_dir):
+            os.makedirs(local_dir)
+        subprocess.run(["git", "clone", repo_url, local_dir], check=True)
+        return True
+    except subprocess.CalledProcessError:
+        print(f"Failed to clone repository: {repo_url}")
+        return False
+
+
+def checkout_commit(local_dir, commit_hash):
+    subprocess.run(["git", "-C", local_dir, "checkout", commit_hash], check=True)
 
 
 def parse_python_file(file_path):
-    with open(file_path, 'r') as file:
-        node = ast.parse(file.read(), filename=file_path)
-    return node
+    try:
+        with open(file_path, 'r') as file:
+            node = ast.parse(file.read(), filename=file_path)
+        return node
+    except SyntaxError:
+        print(f"Syntax error in file: {file_path}. Skipping.")
+        return None
 
 
 def extract_imports(node):
@@ -37,9 +50,10 @@ def analyze_repository(directory):
             if file.endswith('.py'):
                 file_path = os.path.join(root, file)
                 node = parse_python_file(file_path)
-                imports = extract_imports(node)
-                dependencies[file_path] = imports
-                all_imported_modules.update(imports)
+                if node is not None:  # Check if node is not None
+                    imports = extract_imports(node)
+                    dependencies[file_path] = imports
+                    all_imported_modules.update(imports)
 
     return dependencies, all_imported_modules
 
@@ -79,7 +93,6 @@ def compute_max_fan_in(dependencies, all_modules):
     return max((compute_fan_in(module, dependencies) for module in all_modules), default=0)
 
 
-
 def compute_weighted_fan_in(dependencies, all_modules, weights):
     return sum(compute_fan_in(module, dependencies) * weights.get(module, 1) for module in all_modules)
 
@@ -94,28 +107,35 @@ def plot_fan_in_distribution(dependencies, all_modules):
 
 
 def main():
-    repo_name = 'kengz/SLM-Lab'
-    github_repo_url = 'https://github.com/'+repo_name+'.git'
-    local_repo_dir = 'repos/'+repo_name.split('/')[-1] 
+    # Load the dataset
+    df = pd.read_csv('dataset.csv')
+    df_cleaned = df.dropna(subset=['ML TD Type'])
+    filtered_df = df_cleaned[(df_cleaned['Comment-Removing Revision'] != "STILL_EXISTS") & (df_cleaned['ML TD Type'] != "nan")]
 
-    # Clone the GitHub repository
-    clone_github_repo(github_repo_url, local_repo_dir)
+    for index, row in filtered_df.iterrows():
+        repo_name = row['Repo Name']
+        commit_sha = row['Comment-Removing Revision'].split('/')[-1]
+        github_repo_url = 'https://github.com/' + repo_name + '.git'
+        local_repo_dir = 'repos/' + repo_name.replace('/', '_') + '_' + commit_sha  # Unique local directory
 
-    # Analyze the repository and get all modules
-    dependencies, all_modules = analyze_repository(local_repo_dir)
+        # Attempt to clone the GitHub repository
+        if not clone_github_repo(github_repo_url, local_repo_dir):
+            continue
 
-    # Compute Fan-in for each module
-    for module in all_modules:
-        fan_in = compute_fan_in(module, dependencies)
-        print(f"Fan-in for {module}: {fan_in}")
+        # Checkout to the specific commit
+        checkout_commit(local_repo_dir, commit_sha)
 
-    # Other metrics
-    print("Total Fan-in:", compute_total_fan_in(dependencies, all_modules))
-    print("Average Fan-in:", compute_average_fan_in(dependencies, all_modules))
-    print("Median Fan-in:", compute_median_fan_in(dependencies, all_modules))
-    print("Maximum Fan-in:", compute_max_fan_in(dependencies, all_modules))
+        # Analyze the repository and get all modules
+        dependencies, all_modules = analyze_repository(local_repo_dir)
 
-    plot_fan_in_distribution(dependencies, all_modules)
+        # Compute metrics
+        filtered_df.loc[index, 'Total Fan-in'] = compute_total_fan_in(dependencies, all_modules)
+        filtered_df.loc[index, 'Average Fan-in'] = compute_average_fan_in(dependencies, all_modules)
+        filtered_df.loc[index, 'Median Fan-in'] = compute_median_fan_in(dependencies, all_modules)
+        filtered_df.loc[index, 'Maximum Fan-in'] = compute_max_fan_in(dependencies, all_modules)
+
+    # Export the updated dataset to a new CSV file
+    filtered_df.to_csv('filtered_data_with_fanin_metrics.csv', index=False)
 
 if __name__ == "__main__":
     main()
