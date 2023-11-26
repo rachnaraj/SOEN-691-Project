@@ -1,5 +1,5 @@
 def fetch_repos():
-    auth_token = "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"
+    auth_token = "Put Token here"
     headers = {
         "Authorization": f"token {auth_token}",
         "Accept": "application/vnd.github.v3+json"
