@@ -1,14 +1,18 @@
 import pandas as pd
 import os
 
-# Read the original data from Clustering.csv
-file_path = r'D:\Me\concordia\Notes\SE4AI\project\Implementation\Implementation-Git\SOEN-691-Project\Clustering-data.csv'
+
+file_path = r'D:\Me\concordia\Notes\SE4AI\project\Implementation\Implementation-Git\SOEN-691-Project\data\dataset_with_normalized_used_metric_v2.csv'
 df = pd.read_csv(file_path)
 
 # Define weights
-weights = {'Commits Between Start End': 0.2,
-           'Complexity Involved': 0.4,
-           'Lines of code changed': 0.4,
+weights = {'NLC': 0.143,
+           'TFI': 0.143,
+            'CS': 0.143,
+           'ANL': 0.143,
+           'ANC': 0.143,
+           'AVT': 0.143,
+           'AVM': 0.143,
            }
 
 # Calculate Weighted Average for each row
