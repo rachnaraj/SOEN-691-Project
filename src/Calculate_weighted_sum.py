@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 
-file_path = r'D:\Me\concordia\Notes\SE4AI\project\Implementation\Implementation-Git\SOEN-691-Project\data\dataset_with_normalized_used_metric_v2.csv'
+file_path = r'D:\Me\concordia\Notes\SE4AI\project\Implementation\Implementation-Git\SOEN-691-Project\data\dataset_with_normalized_used_metric_v3.csv'
 df = pd.read_csv(file_path)
 
 # Define weights
